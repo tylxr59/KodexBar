@@ -438,7 +438,7 @@ PlasmoidItem {
         if (percentLeft < 35) {
             return "#d08a5b"
         }
-        return "#58b9a8"
+        return Kirigami.Theme.highlightColor
     }
 
     compactRepresentation: MouseArea {
