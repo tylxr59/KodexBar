@@ -105,6 +105,57 @@ PlasmoidItem {
         return i18n("Resets in %1m", minutes)
     }
 
+    function resetTimeFromDescription(value) {
+        if (!value) {
+            return null
+        }
+
+        var text = String(value).trim()
+        var direct = new Date(text)
+        if (!isNaN(direct.getTime())) {
+            return direct.toISOString()
+        }
+
+        var relative = /(\d+)\s*([dhm])\b/ig
+        var match = null
+        var minutes = 0
+        while ((match = relative.exec(text)) !== null) {
+            var amount = parseInt(match[1], 10)
+            var unit = match[2].toLowerCase()
+            if (unit === "d") {
+                minutes += amount * 24 * 60
+            } else if (unit === "h") {
+                minutes += amount * 60
+            } else {
+                minutes += amount
+            }
+        }
+        if (minutes > 0) {
+            return new Date(Date.now() + minutes * 60000).toISOString()
+        }
+
+        var clock = text.match(/(?:resets?\s*)?(\d{1,2}):(\d{2})\s*(AM|PM)?/i)
+        if (!clock) {
+            return null
+        }
+
+        var hour = parseInt(clock[1], 10)
+        var minute = parseInt(clock[2], 10)
+        var meridiem = clock[3] ? clock[3].toUpperCase() : ""
+        if (meridiem === "PM" && hour < 12) {
+            hour += 12
+        } else if (meridiem === "AM" && hour === 12) {
+            hour = 0
+        }
+
+        var candidate = new Date()
+        candidate.setHours(hour, minute, 0, 0)
+        if (candidate.getTime() < Date.now()) {
+            candidate.setDate(candidate.getDate() + 1)
+        }
+        return candidate.toISOString()
+    }
+
     function commandLine(provider, source) {
         return shellQuote(codexbarCommand)
             + " usage --format json --json-only --provider " + shellQuote(provider)
@@ -301,7 +352,25 @@ PlasmoidItem {
     }
 
     function resetAt(window) {
-        return window && typeof window === "object" ? window.resetsAt : null
+        if (!window || typeof window !== "object") {
+            return null
+        }
+
+        var fields = ["resetsAt", "resetAt", "resetTime", "resetDate"]
+        for (var i = 0; i < fields.length; i++) {
+            if (window[fields[i]]) {
+                return window[fields[i]]
+            }
+        }
+
+        if (typeof window.resetTimestamp === "number") {
+            var timestamp = window.resetTimestamp < 10000000000
+                ? window.resetTimestamp * 1000
+                : window.resetTimestamp
+            return new Date(timestamp).toISOString()
+        }
+
+        return resetTimeFromDescription(window.resetDescription || window.resetsIn || "")
     }
 
     function normalizeEntry(entry) {
@@ -586,11 +655,32 @@ PlasmoidItem {
                                     Layout.fillWidth: true
                                     spacing: Kirigami.Units.smallSpacing
 
-                                    PlasmaComponents.Label {
-                                        text: modelData.title
-                                        font.weight: Font.Bold
-                                        font.pointSize: Kirigami.Theme.defaultFont.pointSize + 5
+                                    RowLayout {
                                         Layout.fillWidth: true
+                                        spacing: Kirigami.Units.smallSpacing
+
+                                        PlasmaComponents.Label {
+                                            text: modelData.title
+                                            font.weight: Font.Bold
+                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize + 5
+                                            elide: Text.ElideRight
+                                            Layout.fillWidth: true
+                                        }
+
+                                        PlasmaComponents.Label {
+                                            text: root.formatResetTime(modelData.resetsAt)
+                                            color: Kirigami.Theme.disabledTextColor
+                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize + 1
+                                            visible: text.length > 0
+                                            elide: Text.ElideRight
+                                            Layout.maximumWidth: Kirigami.Units.gridUnit * 9
+                                        }
+
+                                        PlasmaComponents.Label {
+                                            text: root.formatUsedPercent(modelData.percentLeft)
+                                            color: root.usageAccent(modelData.percentLeft)
+                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize + 1
+                                        }
                                     }
 
                                     Rectangle {
@@ -609,22 +699,6 @@ PlasmoidItem {
                                         }
                                     }
 
-                                    RowLayout {
-                                        Layout.fillWidth: true
-
-                                        PlasmaComponents.Label {
-                                            text: root.formatUsedPercent(modelData.percentLeft)
-                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize + 1
-                                            Layout.fillWidth: true
-                                        }
-
-                                        PlasmaComponents.Label {
-                                            text: root.formatResetTime(modelData.resetsAt)
-                                            color: Kirigami.Theme.disabledTextColor
-                                            font.pointSize: Kirigami.Theme.defaultFont.pointSize + 1
-                                            visible: text.length > 0
-                                        }
-                                    }
                                 }
                             }
 
