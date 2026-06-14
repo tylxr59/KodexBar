@@ -724,43 +724,40 @@ PlasmoidItem {
 
                         delegate: Rectangle {
                             readonly property real used: root.usedPercent(modelData.primaryPercentLeft) || 0
-                            Layout.preferredWidth: Math.max(Kirigami.Units.gridUnit * 5, chipLabel.implicitWidth + Kirigami.Units.iconSizes.small + Kirigami.Units.largeSpacing * 2)
-                            Layout.preferredHeight: Kirigami.Units.gridUnit * 3.25
+                            Layout.preferredWidth: Math.max(Kirigami.Units.gridUnit * 4.25, chipLabel.implicitWidth + Kirigami.Units.largeSpacing * 2)
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 3.55
                             radius: Kirigami.Units.cornerRadius
                             color: index === 0 ? Kirigami.Theme.highlightColor : "transparent"
                             opacity: modelData.errorMessage ? 0.62 : 1
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: Kirigami.Units.smallSpacing
-                                spacing: Kirigami.Units.smallSpacing
+                                anchors.margins: Kirigami.Units.smallSpacing / 1.5
+                                spacing: Kirigami.Units.smallSpacing / 2
 
-                                RowLayout {
+                                Kirigami.Icon {
+                                    source: root.providerIconSource(modelData.provider)
+                                    isMask: true
+                                    color: index === 0 ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                    implicitWidth: Kirigami.Units.iconSizes.small
+                                    implicitHeight: Kirigami.Units.iconSizes.small
+                                    Layout.alignment: Qt.AlignHCenter
+                                }
+
+                                PlasmaComponents.Label {
+                                    id: chipLabel
+                                    text: modelData.name || modelData.provider
+                                    horizontalAlignment: Text.AlignHCenter
+                                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                    font.weight: index === 0 ? Font.DemiBold : Font.Normal
+                                    color: index === 0 ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                    elide: Text.ElideRight
                                     Layout.fillWidth: true
-                                    spacing: Kirigami.Units.smallSpacing
-
-                                    Kirigami.Icon {
-                                        source: root.providerIconSource(modelData.provider)
-                                        isMask: true
-                                        color: index === 0 ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
-                                        implicitWidth: Kirigami.Units.iconSizes.small
-                                        implicitHeight: Kirigami.Units.iconSizes.small
-                                    }
-
-                                    PlasmaComponents.Label {
-                                        id: chipLabel
-                                        text: modelData.name || modelData.provider
-                                        horizontalAlignment: Text.AlignHCenter
-                                        font.weight: index === 0 ? Font.DemiBold : Font.Normal
-                                        color: index === 0 ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
-                                        elide: Text.ElideRight
-                                        Layout.fillWidth: true
-                                    }
                                 }
 
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: 5
+                                    Layout.preferredHeight: 4
                                     radius: height / 2
                                     color: Qt.rgba(Kirigami.Theme.disabledTextColor.r, Kirigami.Theme.disabledTextColor.g, Kirigami.Theme.disabledTextColor.b, 0.28)
                                     clip: true
@@ -828,15 +825,6 @@ PlasmoidItem {
 
                             RowLayout {
                                 Layout.fillWidth: true
-
-                                Kirigami.Icon {
-                                    source: root.providerIconSource(modelData.provider)
-                                    isMask: true
-                                    color: Kirigami.Theme.textColor
-                                    implicitWidth: Kirigami.Units.iconSizes.medium
-                                    implicitHeight: Kirigami.Units.iconSizes.medium
-                                    Layout.alignment: Qt.AlignTop
-                                }
 
                                 ColumnLayout {
                                     spacing: Kirigami.Units.smallSpacing
