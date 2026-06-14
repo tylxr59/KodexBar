@@ -48,8 +48,9 @@ PlasmoidItem {
             parts.push(i18n("Error"))
             return parts.join(" ")
         }
-        if (first.primaryPercentLeft !== null && first.primaryPercentLeft !== undefined) {
-            parts.push(Math.round(first.primaryPercentLeft) + "%")
+        var primaryUsed = usedPercent(first.primaryPercentLeft)
+        if (primaryUsed !== null) {
+            parts.push(Math.round(primaryUsed) + "%")
         }
         if (first.creditsRemaining !== null && first.creditsRemaining !== undefined && showCreditsInPanel) {
             parts.push(formatNumber(first.creditsRemaining))
