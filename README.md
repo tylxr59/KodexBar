@@ -16,6 +16,7 @@ The widget intentionally uses the upstream `codexbar` CLI as its data source ins
 
 - **Panel visibility.** Show the active provider, used percent, and remaining credits directly in your KDE panel.
 - **CodexBar-compatible data.** Reads the same JSON payloads as the upstream app and Linux CLI.
+- **Local cost estimates.** Shows `codexbar cost` token and estimated-cost summaries when the upstream CLI can scan local logs.
 - **Provider fallback.** `Best available` tries Linux-friendly source combinations before surfacing an error.
 - **Plasma-native UI.** Built as a Plasma 6 applet with Kirigami styling, provider icons, compact panel text, and a scrollable popup.
 
@@ -128,6 +129,7 @@ If the widget shows a CLI error, either install the CLI, configure provider cred
 | Symptom | Likely fix |
 | --- | --- |
 | Widget says `No data` | Run `codexbar usage --format json --pretty` in a terminal and verify the CLI returns usable data. |
+| Cost section is missing | Run `codexbar cost --format json --pretty` and verify the CLI reports local cost data for the selected provider. |
 | Widget shows a CLI/runtime error | Install `codexbar`, set the full command path, or select a provider/source that works on Linux. |
 | Provider works in terminal but not in the widget | Use an absolute command path in settings if Plasma does not inherit your shell `PATH`. |
 | `Best available` picks the wrong provider | Select the provider explicitly in settings. |

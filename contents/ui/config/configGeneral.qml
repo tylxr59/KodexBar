@@ -26,6 +26,8 @@ KCM.SimpleKCM {
     property bool cfg_showEmailInWidgetDefault
     property alias cfg_includeStatus: includeStatus.checked
     property bool cfg_includeStatusDefault
+    property alias cfg_showCostSummary: showCostSummary.checked
+    property bool cfg_showCostSummaryDefault
 
     function indexForValue(model, value) {
         for (var i = 0; i < model.count; i++) {
@@ -197,6 +199,11 @@ KCM.SimpleKCM {
                 QQC2.CheckBox {
                     id: includeStatus
                     text: i18n("Fetch provider status")
+                }
+
+                QQC2.CheckBox {
+                    id: showCostSummary
+                    text: i18n("Show local cost summary")
                 }
             }
         }

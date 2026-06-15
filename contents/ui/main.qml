@@ -14,6 +14,9 @@ PlasmoidItem {
     property string errorDetail: ""
     property string generatedAt: ""
     property bool loading: false
+    property bool costLoading: false
+    property string costErrorMessage: ""
+    property var costSummaries: ({})
     property string codexbarCommand: Plasmoid.configuration.codexbarCommand || "codexbar"
     property string selectedProvider: Plasmoid.configuration.provider || "detect"
     property string selectedSource: Plasmoid.configuration.source || "detect"
@@ -26,6 +29,7 @@ PlasmoidItem {
     property bool showProviderInPanel: Plasmoid.configuration.showProviderInPanel === undefined ? true : Plasmoid.configuration.showProviderInPanel
     property bool showEmailInWidget: Plasmoid.configuration.showEmailInWidget === undefined ? false : Plasmoid.configuration.showEmailInWidget
     property bool includeStatus: Plasmoid.configuration.includeStatus === undefined ? false : Plasmoid.configuration.includeStatus
+    property bool showCostSummary: Plasmoid.configuration.showCostSummary === undefined ? true : Plasmoid.configuration.showCostSummary
     property int refreshSeconds: Math.max(10, Plasmoid.configuration.refreshInterval || 60)
 
     preferredRepresentation: compactRepresentation
@@ -80,6 +84,30 @@ PlasmoidItem {
         }
         var prefix = currencyCode === "USD" ? "$" : ((currencyCode || "") + " ")
         return prefix + Number(value).toLocaleString(Qt.locale(), "f", 2)
+    }
+
+    function formatTokenCount(value) {
+        if (value === null || value === undefined || isNaN(value)) {
+            return ""
+        }
+        var absolute = Math.abs(Number(value))
+        if (absolute >= 1000000000) {
+            return Number(value / 1000000000).toLocaleString(Qt.locale(), "f", absolute >= 10000000000 ? 0 : 1) + "B"
+        }
+        if (absolute >= 1000000) {
+            return Number(value / 1000000).toLocaleString(Qt.locale(), "f", absolute >= 10000000 ? 0 : 1) + "M"
+        }
+        if (absolute >= 1000) {
+            return Number(value / 1000).toLocaleString(Qt.locale(), "f", absolute >= 10000 ? 0 : 1) + "K"
+        }
+        return Number(value).toLocaleString(Qt.locale(), "f", 0)
+    }
+
+    function localDayKey(date) {
+        function pad(value) {
+            return value < 10 ? "0" + value : String(value)
+        }
+        return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate())
     }
 
     function formatCredits(value) {
@@ -205,6 +233,14 @@ PlasmoidItem {
         return command
     }
 
+    function costCommandLine() {
+        var command = shellQuote(codexbarCommand) + " cost --format json --json-only"
+        if (selectedProvider && selectedProvider !== "detect") {
+            command += " --provider " + shellQuote(selectedProvider)
+        }
+        return command
+    }
+
     function shellQuote(value) {
         return "'" + String(value).replace(/'/g, "'\\''") + "'"
     }
@@ -216,7 +252,21 @@ PlasmoidItem {
         failedCandidates = []
         pendingCandidates = candidateList()
         executable.connectedSources = []
+        refreshCost()
         tryNextCandidate()
+    }
+
+    function refreshCost() {
+        costErrorMessage = ""
+        if (!showCostSummary) {
+            costLoading = false
+            costSummaries = ({})
+            applyCostSummaries()
+            return
+        }
+        costLoading = true
+        costExecutable.connectedSources = []
+        costExecutable.connectSource(costCommandLine())
     }
 
     function candidateList() {
@@ -345,6 +395,131 @@ PlasmoidItem {
                 detail: String(error)
             }
         }
+    }
+
+    function parseCostPayload(text) {
+        if (!text || text.length === 0) {
+            return {
+                ok: false,
+                error: i18n("No output from CodexBar cost")
+            }
+        }
+        try {
+            var raw = JSON.parse(text)
+            var rawEntries = raw instanceof Array ? raw : [raw]
+            var summaries = {}
+            for (var i = 0; i < rawEntries.length; i++) {
+                var summary = normalizeCostSummary(rawEntries[i])
+                if (summary !== null) {
+                    summaries[String(summary.provider).toLowerCase()] = summary
+                }
+            }
+            return {
+                ok: true,
+                summaries: summaries
+            }
+        } catch (error) {
+            return {
+                ok: false,
+                error: i18n("Invalid CodexBar cost response") + ": " + String(error)
+            }
+        }
+    }
+
+    function normalizeCostSummary(entry) {
+        if (!entry || typeof entry !== "object" || !entry.provider) {
+            return null
+        }
+        var todayCost = typeof entry.sessionCostUSD === "number" ? entry.sessionCostUSD : null
+        var todayTokens = typeof entry.sessionTokens === "number" ? entry.sessionTokens : null
+        var dayKey = localDayKey(new Date())
+        var daily = entry.daily instanceof Array ? entry.daily : []
+        for (var i = 0; i < daily.length; i++) {
+            if (daily[i] && daily[i].date === dayKey) {
+                if (typeof daily[i].totalCost === "number") {
+                    todayCost = daily[i].totalCost
+                }
+                if (typeof daily[i].totalTokens === "number") {
+                    todayTokens = daily[i].totalTokens
+                }
+                break
+            }
+        }
+        var totalCost = typeof entry.last30DaysCostUSD === "number"
+            ? entry.last30DaysCostUSD
+            : (entry.totals && typeof entry.totals.totalCost === "number" ? entry.totals.totalCost : null)
+        var totalTokens = typeof entry.last30DaysTokens === "number"
+            ? entry.last30DaysTokens
+            : (entry.totals && typeof entry.totals.totalTokens === "number" ? entry.totals.totalTokens : null)
+        if (todayCost === null && todayTokens === null && totalCost === null && totalTokens === null) {
+            return null
+        }
+        return {
+            provider: entry.provider,
+            source: entry.source || "",
+            currencyCode: entry.currencyCode || "USD",
+            historyDays: typeof entry.historyDays === "number" ? entry.historyDays : 30,
+            todayCost: todayCost,
+            todayTokens: todayTokens,
+            totalCost: totalCost,
+            totalTokens: totalTokens,
+            updatedAt: entry.updatedAt || ""
+        }
+    }
+
+    function costSummaryRows(summary) {
+        if (!summary) {
+            return []
+        }
+        var rows = []
+        if (summary.todayCost !== null || summary.todayTokens !== null) {
+            rows.push({
+                label: i18n("Today"),
+                value: formatCostAndTokens(summary.todayCost, summary.todayTokens, summary.currencyCode)
+            })
+        }
+        if (summary.totalCost !== null || summary.totalTokens !== null) {
+            rows.push({
+                label: i18np("Last day", "Last %1 days", summary.historyDays || 30),
+                value: formatCostAndTokens(summary.totalCost, summary.totalTokens, summary.currencyCode)
+            })
+        }
+        return rows
+    }
+
+    function formatCostAndTokens(cost, tokens, currencyCode) {
+        var parts = []
+        if (cost !== null && cost !== undefined && !isNaN(cost)) {
+            parts.push(formatCurrency(cost, currencyCode || "USD"))
+        }
+        if (tokens !== null && tokens !== undefined && !isNaN(tokens)) {
+            parts.push(i18n("%1 tokens", formatTokenCount(tokens)))
+        }
+        return parts.join(" - ")
+    }
+
+    function withCostSummary(entry) {
+        if (!entry || typeof entry !== "object") {
+            return entry
+        }
+        var key = String(entry.provider || "").toLowerCase()
+        var copy = {}
+        for (var prop in entry) {
+            copy[prop] = entry[prop]
+        }
+        copy.costSummary = costSummaries[key] || null
+        return copy
+    }
+
+    function applyCostSummaries() {
+        if (!entries || entries.length === 0) {
+            return
+        }
+        var updated = []
+        for (var i = 0; i < entries.length; i++) {
+            updated.push(withCostSummary(entries[i]))
+        }
+        entries = updated
     }
 
     function providerName(raw) {
@@ -951,6 +1126,56 @@ PlasmoidItem {
                                 Layout.fillWidth: true
                             }
 
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                visible: root.showCostSummary
+                                    && modelData.costSummary
+                                    && root.costSummaryRows(modelData.costSummary).length > 0
+                                spacing: Kirigami.Units.smallSpacing
+
+                                Kirigami.Heading {
+                                    text: i18n("Cost")
+                                    level: 4
+                                    Layout.fillWidth: true
+                                }
+
+                                Repeater {
+                                    model: root.costSummaryRows(modelData.costSummary)
+
+                                    delegate: RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: Kirigami.Units.smallSpacing
+
+                                        PlasmaComponents.Label {
+                                            text: modelData.label
+                                            color: Kirigami.Theme.textColor
+                                            Layout.fillWidth: true
+                                        }
+
+                                        PlasmaComponents.Label {
+                                            text: modelData.value
+                                            color: Kirigami.Theme.disabledTextColor
+                                            horizontalAlignment: Text.AlignRight
+                                            elide: Text.ElideRight
+                                            Layout.maximumWidth: Kirigami.Units.gridUnit * 16
+                                        }
+                                    }
+                                }
+
+                                PlasmaComponents.Label {
+                                    visible: modelData.costSummary
+                                        && modelData.costSummary.source
+                                        && modelData.costSummary.source.length > 0
+                                    text: modelData.costSummary && modelData.costSummary.source === "local"
+                                        ? i18n("Local token-cost estimate")
+                                        : i18n("Source: %1", modelData.costSummary ? modelData.costSummary.source : "")
+                                    color: Kirigami.Theme.disabledTextColor
+                                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+                            }
+
                             RowLayout {
                                 Layout.fillWidth: true
                                 visible: modelData.creditsRemaining !== null
@@ -1003,6 +1228,17 @@ PlasmoidItem {
                                         Layout.fillWidth: true
                                     }
                                 }
+                            }
+
+                            PlasmaComponents.Label {
+                                visible: root.showCostSummary
+                                    && root.costErrorMessage.length > 0
+                                    && (!modelData.costSummary)
+                                text: root.costErrorMessage
+                                color: Kirigami.Theme.disabledTextColor
+                                wrapMode: Text.WordWrap
+                                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                Layout.fillWidth: true
                             }
 
                             Kirigami.Separator {
@@ -1063,7 +1299,36 @@ PlasmoidItem {
             root.errorMessage = ""
             root.errorDetail = ""
             root.generatedAt = new Date().toLocaleString(Qt.locale(), Locale.ShortFormat)
-            root.entries = result.entries
+            var updatedEntries = []
+            for (var i = 0; i < result.entries.length; i++) {
+                updatedEntries.push(root.withCostSummary(result.entries[i]))
+            }
+            root.entries = updatedEntries
+        }
+    }
+
+    Plasma5Support.DataSource {
+        id: costExecutable
+        engine: "executable"
+        onNewData: function(sourceName, data) {
+            disconnectSource(sourceName)
+            root.costLoading = false
+            if (data["exit code"] && data["exit code"] !== 0 && !(data.stdout || "").length) {
+                root.costErrorMessage = data.stderr || i18n("Cost scan failed with exit code %1", data["exit code"])
+                root.costSummaries = ({})
+                root.applyCostSummaries()
+                return
+            }
+            var result = root.parseCostPayload(data.stdout || "")
+            if (!result.ok) {
+                root.costErrorMessage = result.error
+                root.costSummaries = ({})
+                root.applyCostSummaries()
+                return
+            }
+            root.costErrorMessage = ""
+            root.costSummaries = result.summaries
+            root.applyCostSummaries()
         }
     }
 
@@ -1084,6 +1349,7 @@ PlasmoidItem {
     onCodexbarCommandChanged: refresh()
     onSelectedProviderChanged: refresh()
     onSelectedSourceChanged: refresh()
+    onShowCostSummaryChanged: refreshCost()
     onShowCreditsInPanelChanged: panelText()
     onShowUsedPercentInPanelChanged: panelText()
     onShowProviderInPanelChanged: panelText()
