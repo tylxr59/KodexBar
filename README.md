@@ -88,7 +88,7 @@ KodexBar exposes these Plasma widget settings:
 | Source | `Best available`, `auto`, `web`, `cli`, `oauth`, or `api`. |
 | Refresh | Poll interval, from 10 to 3600 seconds. |
 | Show provider in panel | Include the provider name in the compact label. |
-| Show used percent in panel | Include weekly usage for Codex (or the primary window for other providers) in the compact label. |
+| Show used percent in panel | Include the 5-hour Codex usage in the compact label, falling back to weekly usage when the 5-hour window is unavailable. |
 | Show credits in panel | Include remaining credits in the compact label when available. |
 | Show email in widget | Show the account email inside the popup when available. |
 | Fetch provider status | Add `--status` to CLI calls and display incident/maintenance state. |

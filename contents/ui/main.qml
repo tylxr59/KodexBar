@@ -690,12 +690,11 @@ PlasmoidItem {
 
     function displayPercentLeft(provider, primary, secondary) {
         var primaryLeft = percentLeft(primary)
-        if (String(provider || "").toLowerCase() !== "codex") {
+        if (primaryLeft !== null || String(provider || "").toLowerCase() !== "codex") {
             return primaryLeft
         }
 
-        var weeklyLeft = percentLeft(secondary)
-        return weeklyLeft !== null ? weeklyLeft : primaryLeft
+        return percentLeft(secondary)
     }
 
     function resetAt(window) {
