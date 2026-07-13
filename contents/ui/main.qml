@@ -66,7 +66,7 @@ PlasmoidItem {
             parts.push(first.signedOut ? i18n("Sign in") : i18n("Error"))
             return parts.join(" ")
         }
-        var displayedUsed = usedPercent(first.displayPercentLeft)
+        var displayedUsed = usedPercent(first.primaryPercentLeft)
         if (displayedUsed !== null && showUsedPercentInPanel) {
             parts.push(Math.round(displayedUsed) + "%")
         }
@@ -835,8 +835,7 @@ PlasmoidItem {
             source: entry.source,
             account: entry.account || usage.accountEmail || identity.accountEmail || "",
             plan: usage.loginMethod || identity.loginMethod || dashboard.accountPlan || "",
-            displayPercentLeft: displayPercentLeft(entry.provider, primary, secondary),
-            primaryPercentLeft: percentLeft(primary),
+            primaryPercentLeft: displayPercentLeft(entry.provider, primary, secondary),
             primaryResetsAt: resetAt(primary),
             secondaryPercentLeft: percentLeft(secondary),
             secondaryResetsAt: resetAt(secondary),
@@ -964,10 +963,10 @@ PlasmoidItem {
                     Layout.fillWidth: true
 
                     Repeater {
-                        model: root.entries.length > 0 ? root.entries : [{ name: "KodexBar", provider: "kodexbar", displayPercentLeft: null }]
+                        model: root.entries.length > 0 ? root.entries : [{ name: "KodexBar", provider: "kodexbar", primaryPercentLeft: null }]
 
                         delegate: Rectangle {
-                            readonly property real used: root.usedPercent(modelData.displayPercentLeft) || 0
+                            readonly property real used: root.usedPercent(modelData.primaryPercentLeft) || 0
                             Layout.preferredWidth: Math.max(Kirigami.Units.gridUnit * 4.25, chipLabel.implicitWidth + Kirigami.Units.largeSpacing * 2)
                             Layout.preferredHeight: Kirigami.Units.gridUnit * 3.55
                             radius: Kirigami.Units.cornerRadius
@@ -1010,7 +1009,7 @@ PlasmoidItem {
                                         width: parent.width * used / 100
                                         height: parent.height
                                         radius: parent.radius
-                                        color: index === 0 ? Kirigami.Theme.highlightedTextColor : root.usageAccent(modelData.displayPercentLeft)
+                                        color: index === 0 ? Kirigami.Theme.highlightedTextColor : root.usageAccent(modelData.primaryPercentLeft)
                                     }
                                 }
                             }
