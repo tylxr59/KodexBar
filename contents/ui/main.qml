@@ -18,6 +18,7 @@ PlasmoidItem {
     property bool costLoading: false
     property string costErrorMessage: ""
     property var costSummaries: ({})
+    property var codexResetCredits: null
     property string codexbarCommand: Plasmoid.configuration.codexbarCommand || "codexbar"
     property string selectedProvider: Plasmoid.configuration.provider || "detect"
     property string selectedSource: Plasmoid.configuration.source || "detect"
@@ -308,6 +309,31 @@ PlasmoidItem {
         return i18n("Resets in %1m", minutes)
     }
 
+    function formatExpiryTime(value) {
+        if (!value) {
+            return ""
+        }
+        var expiry = new Date(value)
+        var timestamp = expiry.getTime()
+        if (isNaN(timestamp)) {
+            return ""
+        }
+        var diff = Math.max(0, timestamp - Date.now())
+        var minutes = Math.round(diff / 60000)
+        if (minutes < 1) {
+            return i18n("Expires now")
+        }
+        var hours = Math.floor(minutes / 60)
+        var days = Math.floor(hours / 24)
+        if (days > 0) {
+            return i18n("Expires in %1d %2h", days, hours % 24)
+        }
+        if (hours > 0) {
+            return i18n("Expires in %1h %2m", hours, minutes % 60)
+        }
+        return i18n("Expires in %1m", minutes)
+    }
+
     function resetTimeFromDescription(value) {
         if (!value) {
             return null
@@ -390,6 +416,12 @@ PlasmoidItem {
         return command
     }
 
+    // Only the Codex OAuth source reports reset credits.
+    function codexResetCreditsCommandLine() {
+        return shellQuote(codexbarCommand) + " usage --format json --json-only"
+            + providerArgument("codex") + " --source oauth"
+    }
+
     function costCommandLine() {
         return shellQuote(codexbarCommand) + " cost --format json --json-only"
             + providerArgument(selectedProvider)
@@ -450,6 +482,7 @@ PlasmoidItem {
         }
         executable.connectedSources = []
         costExecutable.connectedSources = []
+        codexResetCreditsExecutable.connectedSources = []
         costLoading = false
         pendingCandidates = []
         finishFailedRefresh(true)
@@ -489,6 +522,9 @@ PlasmoidItem {
         var provider = selectedProvider || "detect"
         var source = selectedSource || "detect"
         var sources = source === "detect" || source === "auto" ? ["cli", "oauth", "api", "auto"] : [source]
+        if (String(provider).toLowerCase() === "codex" && (source === "detect" || source === "auto")) {
+            sources = ["oauth", "cli", "api", "auto"]
+        }
         var result = []
 
         if (provider === "detect" && source === "detect") {
@@ -756,6 +792,51 @@ PlasmoidItem {
         return copy
     }
 
+    function withCodexResetCredits(entry) {
+        // Credits the usage payload reported itself take precedence.
+        if (!entry || typeof entry !== "object"
+                || (entry.codexResetCredits && !entry.codexResetCreditsFetched)
+                || String(entry.provider || "").toLowerCase() !== "codex") {
+            return entry
+        }
+        var copy = {}
+        for (var prop in entry) {
+            copy[prop] = entry[prop]
+        }
+        copy.codexResetCredits = codexResetCredits
+        copy.codexResetCreditsFetched = codexResetCredits !== null
+        return copy
+    }
+
+    function applyCodexResetCredits() {
+        if (!entries || entries.length === 0) {
+            return
+        }
+        var updated = []
+        for (var i = 0; i < entries.length; i++) {
+            updated.push(withCodexResetCredits(entries[i]))
+        }
+        entries = updated
+    }
+
+    // Best available can settle on a source without reset credits, such as
+    // the CLI defaults or codex/cli. Fetch them separately in that case
+    // instead of putting codex/oauth ahead of the other candidates.
+    function refreshCodexResetCredits(normalized) {
+        if (activeProvider === "codex" && activeSource === "oauth") {
+            return
+        }
+        for (var i = 0; i < normalized.length; i++) {
+            var entry = normalized[i]
+            if (String(entry.provider || "").toLowerCase() === "codex"
+                    && !entry.errorMessage && !entry.codexResetCredits) {
+                codexResetCreditsExecutable.connectedSources = []
+                codexResetCreditsExecutable.connectSource(codexResetCreditsCommandLine())
+                return
+            }
+        }
+    }
+
     function applyCostSummaries() {
         if (!entries || entries.length === 0) {
             return
@@ -923,6 +1004,49 @@ PlasmoidItem {
         return resetTimeFromDescription(window.resetDescription || window.resetsIn || "")
     }
 
+    function normalizeCodexResetCredits(raw) {
+        if (!raw || typeof raw !== "object") {
+            return null
+        }
+
+        var credits = raw.credits instanceof Array ? raw.credits : []
+        var availableCredits = []
+        var nextExpiresAt = null
+        var now = Date.now()
+        for (var i = 0; i < credits.length; i++) {
+            var credit = credits[i]
+            if (!credit || typeof credit !== "object"
+                    || (credit.status && String(credit.status).toLowerCase() !== "available")) {
+                continue
+            }
+
+            var expiresAt = credit.expires_at || credit.expiresAt || ""
+            var expiry = expiresAt ? new Date(expiresAt) : null
+            if (expiry && !isNaN(expiry.getTime()) && expiry.getTime() <= now) {
+                continue
+            }
+
+            availableCredits.push(credit)
+            if (expiry && !isNaN(expiry.getTime())
+                    && (nextExpiresAt === null || expiry.getTime() < new Date(nextExpiresAt).getTime())) {
+                nextExpiresAt = expiry.toISOString()
+            }
+        }
+
+        var availableCount = typeof raw.availableCount === "number"
+            ? Math.max(0, Math.round(raw.availableCount))
+            : availableCredits.length
+        if (typeof raw.availableCount !== "number" && credits.length === 0) {
+            return null
+        }
+
+        return {
+            availableCount: availableCount,
+            nextExpiresAt: nextExpiresAt,
+            updatedAt: raw.updatedAt || ""
+        }
+    }
+
     function windowDetail(window, usageKnown) {
         if (!window || typeof window !== "object") {
             return ""
@@ -992,6 +1116,9 @@ PlasmoidItem {
         var tertiary = usage.tertiary
         var providerCost = usage.providerCost && typeof usage.providerCost === "object" ? usage.providerCost : null
         var status = entry.status && typeof entry.status === "object" ? entry.status : null
+        var codexResetCredits = String(entry.provider || "").toLowerCase() === "codex"
+            ? normalizeCodexResetCredits(usage.codexResetCredits || entry.codexResetCredits)
+            : null
         var rows = []
         var windows = [
             { title: i18n("Session"), data: primary },
@@ -1042,6 +1169,7 @@ PlasmoidItem {
             primaryResetsAt: resetAt(primary),
             secondaryPercentLeft: percentLeft(secondary),
             secondaryResetsAt: resetAt(secondary),
+            codexResetCredits: codexResetCredits,
             creditsRemaining: credits && !(credits.creditsAvailable === false && !credits.remaining)
                 ? credits.remaining
                 : (typeof dashboard.creditsRemaining === "number" ? dashboard.creditsRemaining : null),
@@ -1423,6 +1551,55 @@ PlasmoidItem {
                                 }
                             }
 
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                visible: modelData.codexResetCredits !== null
+                                spacing: Kirigami.Units.smallSpacing
+
+                                Kirigami.Heading {
+                                    text: i18n("Rate-limit resets")
+                                    level: 4
+                                    Layout.fillWidth: true
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Kirigami.Units.smallSpacing
+
+                                    PlasmaComponents.Label {
+                                        text: i18n("Available")
+                                        Layout.fillWidth: true
+                                    }
+
+                                    PlasmaComponents.Label {
+                                        text: i18np("%1 reset", "%1 resets", modelData.codexResetCredits
+                                            ? modelData.codexResetCredits.availableCount : 0)
+                                        color: Kirigami.Theme.disabledTextColor
+                                        horizontalAlignment: Text.AlignRight
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Kirigami.Units.smallSpacing
+                                    visible: !!(modelData.codexResetCredits
+                                        && modelData.codexResetCredits.nextExpiresAt
+                                        && modelData.codexResetCredits.nextExpiresAt.length > 0)
+
+                                    PlasmaComponents.Label {
+                                        text: i18n("Next expiry")
+                                        Layout.fillWidth: true
+                                    }
+
+                                    PlasmaComponents.Label {
+                                        text: root.formatExpiryTime(modelData.codexResetCredits
+                                            ? modelData.codexResetCredits.nextExpiresAt : "")
+                                        color: Kirigami.Theme.disabledTextColor
+                                        horizontalAlignment: Text.AlignRight
+                                    }
+                                }
+                            }
+
                             PlasmaComponents.Label {
                                 visible: modelData.errorMessage && modelData.errorMessage.length > 0
                                 text: modelData.errorKind && modelData.errorKind.length > 0 && !modelData.signedOut
@@ -1636,9 +1813,36 @@ PlasmoidItem {
             root.generatedAt = new Date().toLocaleString(Qt.locale(), Locale.ShortFormat)
             var updatedEntries = []
             for (var i = 0; i < result.entries.length; i++) {
-                updatedEntries.push(root.withCostSummary(result.entries[i]))
+                updatedEntries.push(root.withCodexResetCredits(root.withCostSummary(result.entries[i])))
             }
             root.entries = updatedEntries
+            if (result.usable) {
+                root.refreshCodexResetCredits(result.entries)
+            }
+        }
+    }
+
+    Plasma5Support.DataSource {
+        id: codexResetCreditsExecutable
+        engine: "executable"
+        onNewData: function(sourceName, data) {
+            if (connectedSources.indexOf(sourceName) === -1) {
+                return
+            }
+            disconnectSource(sourceName)
+            var result = root.parsePayload(data.stdout || "")
+            var credits = null
+            if (result.ok) {
+                for (var i = 0; i < result.entries.length; i++) {
+                    if (String(result.entries[i].provider || "").toLowerCase() === "codex"
+                            && result.entries[i].codexResetCredits) {
+                        credits = result.entries[i].codexResetCredits
+                        break
+                    }
+                }
+            }
+            root.codexResetCredits = credits
+            root.applyCodexResetCredits()
         }
     }
 
