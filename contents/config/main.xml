@@ -37,5 +37,18 @@
     <entry name="showCostSummary" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="colorPanelByUsage" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="panelWarningThreshold" type="Int">
+      <default>80</default>
+      <min>1</min>
+      <max>100</max>
+    </entry>
+    <entry name="panelCriticalThreshold" type="Int">
+      <default>95</default>
+      <min>1</min>
+      <max>100</max>
+    </entry>
   </group>
 </kcfg>

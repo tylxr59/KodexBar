@@ -14,6 +14,7 @@ PlasmoidItem {
     property string errorDetail: ""
     property string generatedAt: ""
     property bool loading: false
+    property int consecutiveFailures: 0
     property bool costLoading: false
     property string costErrorMessage: ""
     property var costSummaries: ({})
@@ -31,32 +32,119 @@ PlasmoidItem {
     property bool includeStatus: Plasmoid.configuration.includeStatus === undefined ? false : Plasmoid.configuration.includeStatus
     property bool showCostSummary: Plasmoid.configuration.showCostSummary === undefined ? true : Plasmoid.configuration.showCostSummary
     property int refreshSeconds: Math.max(10, Plasmoid.configuration.refreshInterval || 60)
+    property bool colorPanelByUsage: Plasmoid.configuration.colorPanelByUsage === undefined ? true : Plasmoid.configuration.colorPanelByUsage
+    property int panelWarningThreshold: Plasmoid.configuration.panelWarningThreshold || 80
+    property int panelCriticalThreshold: Plasmoid.configuration.panelCriticalThreshold || 95
 
     preferredRepresentation: compactRepresentation
-    toolTipMainText: "KodexBar"
-    toolTipSubText: {
+    toolTipMainText: {
+        var first = panelEntry()
+        if (first === null) {
+            return "KodexBar"
+        }
+        var title = first.name || "KodexBar"
+        if (showEmailInWidget && first.account) {
+            title += " · " + first.account
+        }
+        return title
+    }
+    toolTipSubText: tooltipText()
+
+    function panelEntry() {
+        if (entries.length === 0) {
+            return null
+        }
+        for (var i = 0; i < entries.length; i++) {
+            if (!entries[i].errorMessage && entries[i].rows.length > 0) {
+                return entries[i]
+            }
+        }
+        return entries[0]
+    }
+
+    // Highest used percent across the panel entry's rate-limit windows, so a
+    // nearly exhausted weekly window still colours the label.
+    function panelPeakUsedPercent() {
+        var first = panelEntry()
+        if (first === null || first.errorMessage) {
+            return null
+        }
+        var peak = null
+        for (var i = 0; i < first.rows.length; i++) {
+            var row = first.rows[i]
+            if (row.usageKnown === false) {
+                continue
+            }
+            var used = usedPercent(row.percentLeft)
+            if (used !== null && (peak === null || used > peak)) {
+                peak = used
+            }
+        }
+        return peak
+    }
+
+    function panelTextColor() {
+        if (!colorPanelByUsage) {
+            return Kirigami.Theme.textColor
+        }
+        var peak = panelPeakUsedPercent()
+        if (peak === null) {
+            return Kirigami.Theme.textColor
+        }
+        var critical = Math.max(panelWarningThreshold, panelCriticalThreshold)
+        if (peak >= critical) {
+            return Kirigami.Theme.negativeTextColor
+        }
+        if (peak >= panelWarningThreshold) {
+            return Kirigami.Theme.neutralTextColor
+        }
+        return Kirigami.Theme.textColor
+    }
+
+    function tooltipText() {
+        var lines = []
         if (errorMessage.length > 0) {
-            return errorMessage
+            lines.push(errorDetail.length > 0 ? errorMessage + " " + errorDetail : errorMessage)
         }
-        if (entries.length > 0 && entries[0].signedOut) {
-            return entries[0].errorMessage
+        for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i]
+            if (entries.length > 1) {
+                if (lines.length > 0) {
+                    lines.push("")
+                }
+                lines.push(entry.name || entry.provider)
+            }
+            if (entry.errorMessage) {
+                lines.push(entry.errorMessage)
+                continue
+            }
+            for (var j = 0; j < entry.rows.length; j++) {
+                var row = entry.rows[j]
+                var parts = [row.title + ": " + formatUsedPercent(row.percentLeft, row.usageKnown)]
+                var reset = formatResetTime(row.resetsAt)
+                if (reset.length > 0) {
+                    parts.push(reset)
+                }
+                lines.push(parts.join(" · "))
+            }
         }
-        return panelText()
+        if (entries.length === 0 && errorMessage.length === 0) {
+            lines.push(loading ? i18n("Loading") : i18n("No data"))
+        }
+        lines.push("")
+        if (loading) {
+            lines.push(i18n("Refreshing..."))
+        } else if (generatedAt.length > 0) {
+            lines.push(i18n("Updated %1", generatedAt))
+        }
+        lines.push(i18n("Middle-click to refresh"))
+        return lines.join("\n")
     }
 
     function panelText() {
-        if (entries.length === 0) {
-            return loading ? i18n("Loading") : i18n("No data")
-        }
-        var first = null
-        for (var i = 0; i < entries.length; i++) {
-            if (!entries[i].errorMessage && entries[i].rows.length > 0) {
-                first = entries[i]
-                break
-            }
-        }
+        var first = panelEntry()
         if (first === null) {
-            first = entries[0]
+            return loading ? i18n("Loading") : i18n("No data")
         }
         var parts = []
         if (showProviderInPanel) {
@@ -253,7 +341,55 @@ PlasmoidItem {
         return "'" + String(value).replace(/'/g, "'\\''") + "'"
     }
 
-    function refresh() {
+    // Consecutive failures stretch the timer x2, x4, x8, capped at 30 minutes.
+    function backoffIntervalSeconds() {
+        var factor = Math.pow(2, Math.min(Math.max(0, consecutiveFailures), 3))
+        return Math.max(refreshSeconds, Math.min(1800, refreshSeconds * factor))
+    }
+
+    // Keeps the last usable cards on screen and reports the failure as a
+    // banner; only falls back to the error cards when nothing usable exists.
+    function finishFailedRefresh(timedOut) {
+        refreshWatchdog.stop()
+        loading = false
+        consecutiveFailures += 1
+        if (hasUsableEntries(entries)) {
+            errorMessage = timedOut ? i18n("Refresh timed out") : i18n("Refresh failed")
+            var retrySeconds = backoffIntervalSeconds()
+            errorDetail = retrySeconds >= 60
+                ? i18n("Showing usage from %1. Retrying in %2m.", generatedAt, Math.round(retrySeconds / 60))
+                : i18n("Showing usage from %1. Retrying in %2s.", generatedAt, retrySeconds)
+            return
+        }
+        entries = failedCandidates
+        generatedAt = new Date().toLocaleString(Qt.locale(), Locale.ShortFormat)
+        if (timedOut) {
+            errorMessage = i18n("Refresh timed out")
+            errorDetail = i18n("The CodexBar CLI did not answer within five minutes.")
+        } else if (entries.length === 0) {
+            errorMessage = i18n("No usable CodexBar provider found")
+            errorDetail = i18n("Configure a Linux-capable provider or choose a specific provider/source.")
+        }
+    }
+
+    function abortRefresh() {
+        if (!loading) {
+            return
+        }
+        executable.connectedSources = []
+        costExecutable.connectedSources = []
+        costLoading = false
+        pendingCandidates = []
+        finishFailedRefresh(true)
+    }
+
+    // Timed refreshes pass false so they never interrupt one in progress;
+    // explicit refreshes restart.
+    function refresh(force) {
+        if (force === false && loading) {
+            return
+        }
+        refreshWatchdog.restart()
         loading = true
         errorMessage = ""
         errorDetail = ""
@@ -335,13 +471,7 @@ PlasmoidItem {
 
     function tryNextCandidate() {
         if (pendingCandidates.length === 0) {
-            loading = false
-            entries = failedCandidates
-            generatedAt = new Date().toLocaleString(Qt.locale(), Locale.ShortFormat)
-            if (entries.length === 0) {
-                errorMessage = i18n("No usable CodexBar provider found")
-                errorDetail = i18n("Configure a Linux-capable provider or choose a specific provider/source.")
-            }
+            finishFailedRefresh(false)
             return
         }
 
@@ -397,6 +527,8 @@ PlasmoidItem {
             entry.signedOut = true
             entry.errorKind = "authentication"
             entry.errorMessage = i18n("Codex is installed, but the client is signed out. Run \"codex login\" in a terminal, then refresh.")
+            refreshWatchdog.stop()
+            consecutiveFailures = 0
             loading = false
             errorMessage = ""
             errorDetail = ""
@@ -912,7 +1044,37 @@ PlasmoidItem {
         id: compact
         Layout.minimumWidth: compactRow.implicitWidth + Kirigami.Units.smallSpacing * 2
         Layout.minimumHeight: Kirigami.Units.iconSizes.smallMedium
-        onClicked: root.expanded = !root.expanded
+        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+        activeFocusOnTab: true
+        onClicked: function(mouse) {
+            if (mouse.button === Qt.MiddleButton) {
+                if (!root.loading) {
+                    root.refresh()
+                }
+                return
+            }
+            root.expanded = !root.expanded
+        }
+        Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                root.expanded = !root.expanded
+                event.accepted = true
+            }
+        }
+
+        Accessible.role: Accessible.Button
+        Accessible.name: root.toolTipMainText
+        Accessible.description: root.panelText()
+        Accessible.onPressAction: root.expanded = !root.expanded
+
+        Rectangle {
+            anchors.fill: parent
+            visible: compact.activeFocus
+            color: "transparent"
+            border.color: Kirigami.Theme.focusColor
+            border.width: 1
+            radius: Kirigami.Units.cornerRadius
+        }
 
         RowLayout {
             id: compactRow
@@ -930,6 +1092,7 @@ PlasmoidItem {
             PlasmaComponents.Label {
                 text: root.panelText()
                 visible: text.length > 0
+                color: root.panelTextColor()
                 font.weight: Font.DemiBold
                 elide: Text.ElideRight
                 Layout.maximumWidth: Kirigami.Units.gridUnit * 8
@@ -1021,6 +1184,10 @@ PlasmoidItem {
                     display: QQC2.AbstractButton.IconOnly
                     enabled: !root.loading
                     text: i18n("Refresh")
+                    Accessible.name: text
+                    QQC2.ToolTip.text: text
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
                     onClicked: root.refresh()
                 }
             }
@@ -1316,6 +1483,10 @@ PlasmoidItem {
         id: executable
         engine: "executable"
         onNewData: function(sourceName, data) {
+            // Ignore late output from a refresh that was aborted or replaced.
+            if (!root.loading || connectedSources.indexOf(sourceName) === -1) {
+                return
+            }
             disconnectSource(sourceName)
             if (data["exit code"] && data["exit code"] !== 0 && !(data.stdout || "").length) {
                 var errorEntry = root.normalizeEntry({
@@ -1347,11 +1518,19 @@ PlasmoidItem {
             if (!result.usable && root.stopForCodexAuthentication(result.entries)) {
                 return
             }
-            if (!result.usable && root.pendingCandidates.length > 0) {
+            if (!result.usable) {
                 root.appendFailedEntries(result.entries)
-                root.tryNextCandidate()
-                return
+                if (root.pendingCandidates.length > 0) {
+                    root.tryNextCandidate()
+                    return
+                }
+                if (root.hasUsableEntries(root.entries)) {
+                    root.finishFailedRefresh(false)
+                    return
+                }
             }
+            refreshWatchdog.stop()
+            root.consecutiveFailures = result.usable ? 0 : root.consecutiveFailures + 1
             root.loading = false
             root.errorMessage = ""
             root.errorDetail = ""
@@ -1368,6 +1547,9 @@ PlasmoidItem {
         id: costExecutable
         engine: "executable"
         onNewData: function(sourceName, data) {
+            if (connectedSources.indexOf(sourceName) === -1) {
+                return
+            }
             disconnectSource(sourceName)
             root.costLoading = false
             if (data["exit code"] && data["exit code"] !== 0 && !(data.stdout || "").length) {
@@ -1390,12 +1572,19 @@ PlasmoidItem {
     }
 
     Timer {
+        id: refreshWatchdog
+        interval: 300000
+        repeat: false
+        onTriggered: root.abortRefresh()
+    }
+
+    Timer {
         id: refreshTimer
-        interval: root.refreshSeconds * 1000
+        interval: root.backoffIntervalSeconds() * 1000
         repeat: true
         running: true
         triggeredOnStart: true
-        onTriggered: root.refresh()
+        onTriggered: root.refresh(false)
     }
 
     onRefreshSecondsChanged: {

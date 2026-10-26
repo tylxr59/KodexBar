@@ -60,7 +60,10 @@ plasmashell --replace
 ## Usage
 
 - Click the panel item to open the popup.
-- Use the refresh button in the popup to query the CLI immediately.
+- Middle-click the panel item, or use the refresh button in the popup, to query the CLI immediately.
+- Hover the panel item for a tooltip listing every provider's windows, used percentages, and reset countdowns.
+- The panel item is keyboard reachable: Tab to it and press Enter or Space to toggle the popup.
+- The panel label turns to the theme's warning colour at 80% used and to the negative colour at 95% used, based on the busiest window of the provider shown in the panel.
 - Open widget settings to change provider, source, refresh cadence, and compact label fields.
 - Leave Provider as `Best available` if you want KodexBar to find the first usable Linux-capable provider/source combination.
 - Choose `All enabled` to ask the CLI for all providers enabled in `~/.codexbar/config.json`.
@@ -74,6 +77,8 @@ The popup renders common CodexBar CLI fields:
 - OpenAI dashboard summaries where present
 - provider status when status fetching is enabled
 - per-provider CLI/runtime errors
+
+Refreshes are resilient to a slow or failing CLI: timed refreshes never overlap a running one, a refresh that takes longer than five minutes is aborted, and consecutive failures back off the refresh interval (x2, x4, x8, capped at 30 minutes). When a refresh fails, the last usable cards stay on screen with an error banner instead of being replaced.
 
 Provider-specific charts, account management, cookie/API-key editing, notifications, and cost scans remain available through the upstream CodexBar app and CLI.
 
@@ -92,6 +97,8 @@ KodexBar exposes these Plasma widget settings:
 | Show credits in panel | Include remaining credits in the compact label when available. |
 | Show email in widget | Show the account email inside the popup when available. |
 | Fetch provider status | Add `--status` to CLI calls and display incident/maintenance state. |
+| Show local cost summary | Show `codexbar cost` token and estimated-cost summaries in the popup. |
+| Colour panel text by usage | Colour the compact label when the busiest window crosses the warning and critical thresholds (default 80% and 95% used). |
 
 Provider credentials and provider toggles are still controlled by the CodexBar CLI config at `~/.codexbar/config.json`.
 
@@ -135,6 +142,10 @@ If the widget shows a CLI error, either install the CLI, configure provider cred
 | Provider works in terminal but not in the widget | Use an absolute command path in settings if Plasma does not inherit your shell `PATH`. |
 | `Best available` picks the wrong provider | Select the provider explicitly in settings. |
 | Status never appears | Enable **Fetch provider status** in widget settings. |
+
+## Credits
+
+Refresh reliability, panel usage colouring, the detailed panel tooltip, middle-click refresh, and keyboard accessibility were adapted from [@Yoryoboy](https://github.com/Yoryoboy)'s fork, [Yoryoboy/KodexBar](https://github.com/Yoryoboy/KodexBar).
 
 ## License
 

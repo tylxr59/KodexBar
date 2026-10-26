@@ -28,6 +28,12 @@ KCM.SimpleKCM {
     property bool cfg_includeStatusDefault
     property alias cfg_showCostSummary: showCostSummary.checked
     property bool cfg_showCostSummaryDefault
+    property alias cfg_colorPanelByUsage: colorPanelByUsage.checked
+    property bool cfg_colorPanelByUsageDefault
+    property alias cfg_panelWarningThreshold: panelWarningThreshold.value
+    property int cfg_panelWarningThresholdDefault
+    property alias cfg_panelCriticalThreshold: panelCriticalThreshold.value
+    property int cfg_panelCriticalThresholdDefault
 
     function indexForValue(model, value) {
         for (var i = 0; i < model.count; i++) {
@@ -204,6 +210,34 @@ KCM.SimpleKCM {
                 QQC2.CheckBox {
                     id: showCostSummary
                     text: i18n("Show local cost summary")
+                }
+
+                QQC2.CheckBox {
+                    id: colorPanelByUsage
+                    Kirigami.FormData.label: i18n("Panel colour:")
+                    text: i18n("Colour panel text by usage")
+                }
+
+                QQC2.SpinBox {
+                    id: panelWarningThreshold
+                    Kirigami.FormData.label: i18n("Warning at:")
+                    enabled: colorPanelByUsage.checked
+                    from: 1
+                    to: 100
+                    textFromValue: function(value) { return i18n("%1% used", value) }
+                    valueFromText: function(text) { return Number(text.replace(/\D/g, "")) }
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                }
+
+                QQC2.SpinBox {
+                    id: panelCriticalThreshold
+                    Kirigami.FormData.label: i18n("Critical at:")
+                    enabled: colorPanelByUsage.checked
+                    from: 1
+                    to: 100
+                    textFromValue: function(value) { return i18n("%1% used", value) }
+                    valueFromText: function(text) { return Number(text.replace(/\D/g, "")) }
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 8
                 }
             }
         }

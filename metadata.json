@@ -12,7 +12,7 @@
     "Id": "org.kde.plasma.kodexbar",
     "License": "MIT",
     "Name": "KodexBar",
-    "Version": "0.1.0",
+    "Version": "0.2.0",
     "Website": "https://github.com/tylxr59/KodexBar"
   },
   "KPackageStructure": "Plasma/Applet",
