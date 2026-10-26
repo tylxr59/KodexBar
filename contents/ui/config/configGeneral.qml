@@ -248,7 +248,7 @@ KCM.SimpleKCM {
 
                 QQC2.CheckBox {
                     id: showProviderInPanel
-                    text: i18n("Show provider in panel")
+                    text: i18n("Show provider name next to its icon")
                 }
 
                 QQC2.CheckBox {
