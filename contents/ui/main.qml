@@ -987,7 +987,9 @@ PlasmoidItem {
             primaryResetsAt: resetAt(primary),
             secondaryPercentLeft: percentLeft(secondary),
             secondaryResetsAt: resetAt(secondary),
-            creditsRemaining: credits ? credits.remaining : (typeof dashboard.creditsRemaining === "number" ? dashboard.creditsRemaining : null),
+            creditsRemaining: credits && !(credits.creditsAvailable === false && !credits.remaining)
+                ? credits.remaining
+                : (typeof dashboard.creditsRemaining === "number" ? dashboard.creditsRemaining : null),
             codeReviewRemainingPercent: typeof dashboard.codeReviewRemainingPercent === "number" ? dashboard.codeReviewRemainingPercent : null,
             dashboardSummary: dashboardSummary(dashboard),
             rows: rows,
@@ -1492,6 +1494,12 @@ PlasmoidItem {
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                 elide: Text.ElideRight
                 Layout.fillWidth: true
+            }
+
+            // Absorbs extra popup height (Plasma keeps the popup's previous
+            // size) so content stays pinned to the top.
+            Item {
+                Layout.fillHeight: true
             }
         }
     }
