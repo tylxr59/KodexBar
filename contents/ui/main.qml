@@ -1181,6 +1181,9 @@ PlasmoidItem {
         Layout.minimumHeight: Math.min(Layout.preferredHeight, maxPopupHeight)
         Layout.preferredWidth: Kirigami.Units.gridUnit * 34
         Layout.preferredHeight: Math.min(content.implicitHeight + popupMargin * 2, maxPopupHeight)
+        // Plasma restores the last saved popup size; cap it at the content so a
+        // size saved during a taller state does not leave empty space.
+        Layout.maximumHeight: Layout.preferredHeight
 
         ColumnLayout {
             id: content
