@@ -451,7 +451,7 @@ PlasmoidItem {
             return [{ provider: "all", source: source }]
         }
 
-        return [
+        return result.concat([
             { provider: "codex", source: "cli" },
             { provider: "codex", source: "oauth" },
             { provider: "codex", source: "api" },
@@ -483,7 +483,7 @@ PlasmoidItem {
             { provider: "groq", source: "api" },
             { provider: "llmproxy", source: "api" },
             { provider: "deepgram", source: "api" }
-        ]
+        ])
     }
 
     function tryNextCandidate() {
@@ -1622,14 +1622,23 @@ PlasmoidItem {
         onTriggered: root.refresh(false)
     }
 
-    onRefreshSecondsChanged: {
-        refreshTimer.restart()
-        refresh()
+    // Plasma loads configuration values one by one at startup; coalesce the
+    // resulting change notifications into a single refresh.
+    Timer {
+        id: configRefreshDebounce
+        interval: 250
+        repeat: false
+        onTriggered: root.refresh()
     }
 
-    onCodexbarCommandChanged: refresh()
-    onSelectedProviderChanged: refresh()
-    onSelectedSourceChanged: refresh()
+    onRefreshSecondsChanged: {
+        refreshTimer.restart()
+        configRefreshDebounce.restart()
+    }
+
+    onCodexbarCommandChanged: configRefreshDebounce.restart()
+    onSelectedProviderChanged: configRefreshDebounce.restart()
+    onSelectedSourceChanged: configRefreshDebounce.restart()
     onShowCostSummaryChanged: refreshCost()
     onShowCreditsInPanelChanged: panelText()
     onShowUsedPercentInPanelChanged: panelText()
