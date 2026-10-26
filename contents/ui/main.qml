@@ -144,7 +144,10 @@ PlasmoidItem {
     function panelText() {
         var first = panelEntry()
         if (first === null) {
-            return loading ? i18n("Loading") : i18n("No data")
+            if (loading) {
+                return i18n("Loading")
+            }
+            return errorMessage.length > 0 ? i18n("Error") : i18n("No data")
         }
         var parts = []
         if (showProviderInPanel) {
@@ -370,6 +373,20 @@ PlasmoidItem {
             errorMessage = i18n("No usable CodexBar provider found")
             errorDetail = i18n("Configure a Linux-capable provider or choose a specific provider/source.")
         }
+    }
+
+    function isMissingCommand(data) {
+        return data["exit code"] === 127
+            || String(data.stderr || "").indexOf("command not found") !== -1
+    }
+
+    // Every fallback runs the same binary, so a missing CLI ends the search.
+    function stopForMissingCommand() {
+        pendingCandidates = []
+        failedCandidates = []
+        finishFailedRefresh(false)
+        errorMessage = i18n("CodexBar CLI not found")
+        errorDetail = i18n("Install codexbar or set its full path in the widget settings. Command: %1", codexbarCommand)
     }
 
     function abortRefresh() {
@@ -1489,6 +1506,10 @@ PlasmoidItem {
             }
             disconnectSource(sourceName)
             if (data["exit code"] && data["exit code"] !== 0 && !(data.stdout || "").length) {
+                if (root.isMissingCommand(data)) {
+                    root.stopForMissingCommand()
+                    return
+                }
                 var errorEntry = root.normalizeEntry({
                     provider: root.activeProvider,
                     source: root.activeSource,
@@ -1553,6 +1574,12 @@ PlasmoidItem {
             disconnectSource(sourceName)
             root.costLoading = false
             if (data["exit code"] && data["exit code"] !== 0 && !(data.stdout || "").length) {
+                if (root.isMissingCommand(data)) {
+                    root.costErrorMessage = ""
+                    root.costSummaries = ({})
+                    root.applyCostSummaries()
+                    return
+                }
                 root.costErrorMessage = data.stderr || i18n("Cost scan failed with exit code %1", data["exit code"])
                 root.costSummaries = ({})
                 root.applyCostSummaries()
