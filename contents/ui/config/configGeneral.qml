@@ -35,6 +35,78 @@ KCM.SimpleKCM {
     property alias cfg_panelCriticalThreshold: panelCriticalThreshold.value
     property int cfg_panelCriticalThresholdDefault
 
+    property ListModel providerModel: ListModel {
+        ListElement { text: "Best available"; value: "detect" }
+        ListElement { text: "All enabled"; value: "all" }
+        ListElement { text: "Abacus AI"; value: "abacus" }
+        ListElement { text: "Alibaba Coding Plan"; value: "alibaba" }
+        ListElement { text: "Alibaba Token Plan"; value: "alibabatokenplan" }
+        ListElement { text: "Amp"; value: "amp" }
+        ListElement { text: "Antigravity"; value: "antigravity" }
+        ListElement { text: "Augment"; value: "augment" }
+        ListElement { text: "AWS Bedrock"; value: "bedrock" }
+        ListElement { text: "Azure OpenAI"; value: "azureopenai" }
+        ListElement { text: "Codex"; value: "codex" }
+        ListElement { text: "Claude"; value: "claude" }
+        ListElement { text: "Codebuff"; value: "codebuff" }
+        ListElement { text: "Command Code"; value: "commandcode" }
+        ListElement { text: "Copilot"; value: "copilot" }
+        ListElement { text: "Crof"; value: "crof" }
+        ListElement { text: "Cursor"; value: "cursor" }
+        ListElement { text: "Deepgram"; value: "deepgram" }
+        ListElement { text: "DeepSeek"; value: "deepseek" }
+        ListElement { text: "Devin"; value: "devin" }
+        ListElement { text: "Doubao"; value: "doubao" }
+        ListElement { text: "Droid"; value: "factory" }
+        ListElement { text: "ElevenLabs"; value: "elevenlabs" }
+        ListElement { text: "Gemini"; value: "gemini" }
+        ListElement { text: "Grok"; value: "grok" }
+        ListElement { text: "GroqCloud"; value: "groq" }
+        ListElement { text: "JetBrains AI"; value: "jetbrains" }
+        ListElement { text: "Kilo Code"; value: "kilo" }
+        ListElement { text: "Kimi"; value: "kimi" }
+        ListElement { text: "Kimi K2"; value: "kimik2" }
+        ListElement { text: "Kiro"; value: "kiro" }
+        ListElement { text: "LLM Proxy"; value: "llmproxy" }
+        ListElement { text: "Manus"; value: "manus" }
+        ListElement { text: "MiniMax"; value: "minimax" }
+        ListElement { text: "Mistral"; value: "mistral" }
+        ListElement { text: "Moonshot"; value: "moonshot" }
+        ListElement { text: "Ollama"; value: "ollama" }
+        ListElement { text: "OpenAI API"; value: "openai" }
+        ListElement { text: "OpenCode"; value: "opencode" }
+        ListElement { text: "OpenCode Go"; value: "opencodego" }
+        ListElement { text: "OpenRouter"; value: "openrouter" }
+        ListElement { text: "Perplexity"; value: "perplexity" }
+        ListElement { text: "StepFun"; value: "stepfun" }
+        ListElement { text: "Synthetic"; value: "synthetic" }
+        ListElement { text: "T3 Chat"; value: "t3chat" }
+        ListElement { text: "Venice"; value: "venice" }
+        ListElement { text: "Vertex AI"; value: "vertexai" }
+        ListElement { text: "Warp"; value: "warp" }
+        ListElement { text: "Windsurf"; value: "windsurf" }
+        ListElement { text: "Xiaomi MiMo"; value: "mimo" }
+        ListElement { text: "z.ai"; value: "zai" }
+    }
+
+    property string cfg_panelProviderMode
+    property string cfg_panelProviderModeDefault
+    property var cfg_panelProviders: []
+    property var cfg_panelProvidersDefault: []
+
+    function togglePanelProvider(value, checked) {
+        var updated = []
+        for (var i = 0; i < cfg_panelProviders.length; i++) {
+            if (cfg_panelProviders[i] !== value) {
+                updated.push(cfg_panelProviders[i])
+            }
+        }
+        if (checked) {
+            updated.push(value)
+        }
+        cfg_panelProviders = updated
+    }
+
     function indexForValue(model, value) {
         for (var i = 0; i < model.count; i++) {
             if (model.get(i).value === value) {
@@ -91,59 +163,7 @@ KCM.SimpleKCM {
                     Kirigami.FormData.label: i18n("Provider:")
                     textRole: "text"
                     valueRole: "value"
-                    model: ListModel {
-                        ListElement { text: "Best available"; value: "detect" }
-                        ListElement { text: "All enabled"; value: "all" }
-                        ListElement { text: "Abacus AI"; value: "abacus" }
-                        ListElement { text: "Alibaba Coding Plan"; value: "alibaba" }
-                        ListElement { text: "Alibaba Token Plan"; value: "alibabatokenplan" }
-                        ListElement { text: "Amp"; value: "amp" }
-                        ListElement { text: "Antigravity"; value: "antigravity" }
-                        ListElement { text: "Augment"; value: "augment" }
-                        ListElement { text: "AWS Bedrock"; value: "bedrock" }
-                        ListElement { text: "Azure OpenAI"; value: "azureopenai" }
-                        ListElement { text: "Codex"; value: "codex" }
-                        ListElement { text: "Claude"; value: "claude" }
-                        ListElement { text: "Codebuff"; value: "codebuff" }
-                        ListElement { text: "Command Code"; value: "commandcode" }
-                        ListElement { text: "Copilot"; value: "copilot" }
-                        ListElement { text: "Crof"; value: "crof" }
-                        ListElement { text: "Cursor"; value: "cursor" }
-                        ListElement { text: "Deepgram"; value: "deepgram" }
-                        ListElement { text: "DeepSeek"; value: "deepseek" }
-                        ListElement { text: "Devin"; value: "devin" }
-                        ListElement { text: "Doubao"; value: "doubao" }
-                        ListElement { text: "Droid"; value: "factory" }
-                        ListElement { text: "ElevenLabs"; value: "elevenlabs" }
-                        ListElement { text: "Gemini"; value: "gemini" }
-                        ListElement { text: "Grok"; value: "grok" }
-                        ListElement { text: "GroqCloud"; value: "groq" }
-                        ListElement { text: "JetBrains AI"; value: "jetbrains" }
-                        ListElement { text: "Kilo Code"; value: "kilo" }
-                        ListElement { text: "Kimi"; value: "kimi" }
-                        ListElement { text: "Kimi K2"; value: "kimik2" }
-                        ListElement { text: "Kiro"; value: "kiro" }
-                        ListElement { text: "LLM Proxy"; value: "llmproxy" }
-                        ListElement { text: "Manus"; value: "manus" }
-                        ListElement { text: "MiniMax"; value: "minimax" }
-                        ListElement { text: "Mistral"; value: "mistral" }
-                        ListElement { text: "Moonshot"; value: "moonshot" }
-                        ListElement { text: "Ollama"; value: "ollama" }
-                        ListElement { text: "OpenAI API"; value: "openai" }
-                        ListElement { text: "OpenCode"; value: "opencode" }
-                        ListElement { text: "OpenCode Go"; value: "opencodego" }
-                        ListElement { text: "OpenRouter"; value: "openrouter" }
-                        ListElement { text: "Perplexity"; value: "perplexity" }
-                        ListElement { text: "StepFun"; value: "stepfun" }
-                        ListElement { text: "Synthetic"; value: "synthetic" }
-                        ListElement { text: "T3 Chat"; value: "t3chat" }
-                        ListElement { text: "Venice"; value: "venice" }
-                        ListElement { text: "Vertex AI"; value: "vertexai" }
-                        ListElement { text: "Warp"; value: "warp" }
-                        ListElement { text: "Windsurf"; value: "windsurf" }
-                        ListElement { text: "Xiaomi MiMo"; value: "mimo" }
-                        ListElement { text: "z.ai"; value: "zai" }
-                    }
+                    model: page.providerModel
                     currentIndex: page.indexForValue(model, page.cfg_provider || "detect")
                     Layout.preferredWidth: Kirigami.Units.gridUnit * 12
                     onActivated: function(index) {
@@ -180,6 +200,50 @@ KCM.SimpleKCM {
                     textFromValue: function(value) { return i18np("%1 second", "%1 seconds", value) }
                     valueFromText: function(text) { return Number(text.replace(/\D/g, "")) }
                     Layout.preferredWidth: Kirigami.Units.gridUnit * 10
+                }
+
+                QQC2.ComboBox {
+                    id: panelProviderMode
+                    Kirigami.FormData.label: i18n("Panel shows:")
+                    textRole: "text"
+                    valueRole: "value"
+                    model: ListModel {
+                        ListElement { text: "First available provider"; value: "auto" }
+                        ListElement { text: "Selected providers"; value: "selected" }
+                    }
+                    currentIndex: page.indexForValue(model, page.cfg_panelProviderMode || "auto")
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 12
+                    onActivated: function(index) {
+                        page.cfg_panelProviderMode = model.get(index).value
+                    }
+                }
+
+                GridLayout {
+                    visible: page.cfg_panelProviderMode === "selected"
+                    columns: 3
+                    columnSpacing: Kirigami.Units.largeSpacing
+                    rowSpacing: 0
+
+                    Repeater {
+                        model: page.providerModel
+
+                        delegate: QQC2.CheckBox {
+                            // "Best available" and "All enabled" are not providers.
+                            visible: model.value !== "detect" && model.value !== "all"
+                            text: model.text
+                            checked: page.cfg_panelProviders.indexOf(model.value) !== -1
+                            onToggled: page.togglePanelProvider(model.value, checked)
+                        }
+                    }
+                }
+
+                PlasmaComponents.Label {
+                    visible: page.cfg_panelProviderMode === "selected"
+                    text: i18n("Selected providers appear side by side in the panel. If none of them have data, the first available provider is shown.")
+                    color: Kirigami.Theme.disabledTextColor
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    wrapMode: Text.WordWrap
+                    Layout.maximumWidth: Kirigami.Units.gridUnit * 24
                 }
 
                 QQC2.CheckBox {

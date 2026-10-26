@@ -37,6 +37,12 @@
     <entry name="showCostSummary" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="panelProviderMode" type="String">
+      <default>auto</default>
+    </entry>
+    <entry name="panelProviders" type="StringList">
+      <default></default>
+    </entry>
     <entry name="colorPanelByUsage" type="Bool">
       <default>true</default>
     </entry>

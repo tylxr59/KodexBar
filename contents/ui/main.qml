@@ -35,13 +35,16 @@ PlasmoidItem {
     property bool colorPanelByUsage: Plasmoid.configuration.colorPanelByUsage === undefined ? true : Plasmoid.configuration.colorPanelByUsage
     property int panelWarningThreshold: Plasmoid.configuration.panelWarningThreshold || 80
     property int panelCriticalThreshold: Plasmoid.configuration.panelCriticalThreshold || 95
+    property string panelProviderMode: Plasmoid.configuration.panelProviderMode || "auto"
+    property var panelProviders: Plasmoid.configuration.panelProviders || []
 
     preferredRepresentation: compactRepresentation
     toolTipMainText: {
-        var first = panelEntry()
-        if (first === null) {
+        var shown = panelEntries()
+        if (shown.length !== 1) {
             return "KodexBar"
         }
+        var first = shown[0]
         var title = first.name || "KodexBar"
         if (showEmailInWidget && first.account) {
             title += " · " + first.account
@@ -62,11 +65,37 @@ PlasmoidItem {
         return entries[0]
     }
 
-    // Highest used percent across the panel entry's rate-limit windows, so a
-    // nearly exhausted weekly window still colours the label.
-    function panelPeakUsedPercent() {
+    function providerKey(value) {
+        return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "")
+    }
+
+    // Entries shown in the panel: the selected providers in data order, or
+    // the first usable entry in automatic mode. Falls back to automatic when
+    // none of the selected providers are present.
+    function panelEntries() {
+        if (panelProviderMode === "selected" && panelProviders.length > 0) {
+            var wanted = {}
+            for (var i = 0; i < panelProviders.length; i++) {
+                wanted[providerKey(panelProviders[i])] = true
+            }
+            var selected = []
+            for (var j = 0; j < entries.length; j++) {
+                if (wanted[providerKey(entries[j].provider)]) {
+                    selected.push(entries[j])
+                }
+            }
+            if (selected.length > 0) {
+                return selected
+            }
+        }
         var first = panelEntry()
-        if (first === null || first.errorMessage) {
+        return first === null ? [] : [first]
+    }
+
+    // Highest used percent across an entry's rate-limit windows, so a nearly
+    // exhausted weekly window still colours the label.
+    function panelPeakUsedPercent(first) {
+        if (!first || first.errorMessage) {
             return null
         }
         var peak = null
@@ -83,11 +112,11 @@ PlasmoidItem {
         return peak
     }
 
-    function panelTextColor() {
+    function panelTextColor(entry) {
         if (!colorPanelByUsage) {
             return Kirigami.Theme.textColor
         }
-        var peak = panelPeakUsedPercent()
+        var peak = panelPeakUsedPercent(entry)
         if (peak === null) {
             return Kirigami.Theme.textColor
         }
@@ -141,14 +170,26 @@ PlasmoidItem {
         return lines.join("\n")
     }
 
-    function panelText() {
-        var first = panelEntry()
-        if (first === null) {
-            if (loading) {
-                return i18n("Loading")
-            }
-            return errorMessage.length > 0 ? i18n("Error") : i18n("No data")
+    function panelStatusText() {
+        if (loading) {
+            return i18n("Loading")
         }
+        return errorMessage.length > 0 ? i18n("Error") : i18n("No data")
+    }
+
+    function panelText() {
+        var shown = panelEntries()
+        if (shown.length === 0) {
+            return panelStatusText()
+        }
+        var texts = []
+        for (var i = 0; i < shown.length; i++) {
+            texts.push(entryPanelText(shown[i]))
+        }
+        return texts.join(", ")
+    }
+
+    function entryPanelText(first) {
         var parts = []
         if (showProviderInPanel) {
             parts.push(first.name || "Codex")
@@ -1098,23 +1139,35 @@ PlasmoidItem {
         RowLayout {
             id: compactRow
             anchors.centerIn: parent
-            spacing: Kirigami.Units.smallSpacing
+            spacing: Kirigami.Units.largeSpacing
 
-            Kirigami.Icon {
-                source: root.providerIconSource(root.entries.length > 0 ? root.entries[0].provider : "codex")
-                isMask: true
-                color: Kirigami.Theme.textColor
-                implicitWidth: Kirigami.Units.iconSizes.small
-                implicitHeight: Kirigami.Units.iconSizes.small
-            }
+            Repeater {
+                // A placeholder keeps the icon and status visible before data arrives.
+                model: {
+                    var shown = root.panelEntries()
+                    return shown.length > 0 ? shown : [null]
+                }
 
-            PlasmaComponents.Label {
-                text: root.panelText()
-                visible: text.length > 0
-                color: root.panelTextColor()
-                font.weight: Font.DemiBold
-                elide: Text.ElideRight
-                Layout.maximumWidth: Kirigami.Units.gridUnit * 8
+                delegate: RowLayout {
+                    spacing: Kirigami.Units.smallSpacing
+
+                    Kirigami.Icon {
+                        source: root.providerIconSource(modelData ? modelData.provider : "codex")
+                        isMask: true
+                        color: Kirigami.Theme.textColor
+                        implicitWidth: Kirigami.Units.iconSizes.small
+                        implicitHeight: Kirigami.Units.iconSizes.small
+                    }
+
+                    PlasmaComponents.Label {
+                        text: modelData ? root.entryPanelText(modelData) : root.panelStatusText()
+                        visible: text.length > 0
+                        color: modelData ? root.panelTextColor(modelData) : Kirigami.Theme.textColor
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
+                        Layout.maximumWidth: Kirigami.Units.gridUnit * 8
+                    }
+                }
             }
         }
     }

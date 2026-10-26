@@ -92,6 +92,7 @@ KodexBar exposes these Plasma widget settings:
 | Provider | `Best available`, `All enabled`, or a specific CodexBar provider ID. |
 | Source | `Best available`, `auto`, `web`, `cli`, `oauth`, or `api`. |
 | Refresh | Poll interval, from 10 to 3600 seconds. |
+| Panel shows | `First available provider`, or `Selected providers` to pick any number of providers to show side by side in the panel, each with its own icon and usage colour. |
 | Show provider in panel | Include the provider name in the compact label. |
 | Show used percent in panel | Include the 5-hour Codex usage in the compact label, falling back to weekly usage when the 5-hour window is unavailable. |
 | Show credits in panel | Include remaining credits in the compact label when available. |
