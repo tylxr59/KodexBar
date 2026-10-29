@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check tag matches metadata.json version
+        run: |
+          version=$(jq -er '.KPlugin.Version' metadata.json)
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match metadata.json version ${version}"
+            exit 1
+          fi
+
+      - name: Build plasmoid
+        id: package
+        run: echo "file=$(scripts/package.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" "${{ steps.package.outputs.file }}" \
+            --title "KodexBar ${GITHUB_REF_NAME#v}" \
+            --generate-notes

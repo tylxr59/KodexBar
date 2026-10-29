@@ -49,6 +49,14 @@ codexbar usage --format json --pretty
 
 ### 2. Install the widget
 
+Download the latest `.plasmoid` from the [releases page](https://github.com/tylxr59/KodexBar/releases/latest) and install it:
+
+```sh
+kpackagetool6 -t Plasma/Applet -i KodexBar-*.plasmoid
+```
+
+Or install from source:
+
 ```sh
 git clone https://github.com/tylxr59/KodexBar.git
 cd KodexBar
@@ -59,6 +67,15 @@ Right-click your panel, choose **Add Widgets…**, and add **KodexBar**.
 
 ### Updating
 
+From a release, download the new `.plasmoid` and upgrade:
+
+```sh
+kpackagetool6 -t Plasma/Applet -u KodexBar-*.plasmoid
+plasmashell --replace
+```
+
+From source:
+
 ```sh
 git pull
 kpackagetool6 -t Plasma/Applet -u .
@@ -68,7 +85,7 @@ plasmashell --replace
 ### Uninstalling
 
 ```sh
-kpackagetool6 -t Plasma/Applet -r org.kde.plasma.kodexbar
+kpackagetool6 -t Plasma/Applet -r com.tylxr.kodexbar
 ```
 
 ## Usage

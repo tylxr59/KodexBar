@@ -9,7 +9,7 @@
     "Category": "System Information",
     "Description": "KDE Plasma panel widget for CodexBar usage, quotas, and credits.",
     "Icon": "codex",
-    "Id": "org.kde.plasma.kodexbar",
+    "Id": "com.tylxr.kodexbar",
     "License": "MIT",
     "Name": "KodexBar",
     "Version": "0.3.0",
