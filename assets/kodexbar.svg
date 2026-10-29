@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1024"
+   height="1024"
+   viewBox="0 0 1024 1024"
+   version="1.1"
+   id="svg6"
+   sodipodi:docname="kodexbar.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview6"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.1513672"
+     inkscape:cx="511.99999"
+     inkscape:cy="511.99999"
+     inkscape:window-width="2560"
+     inkscape:window-height="1382"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg6" />
+  <defs
+     id="defs4">
+    <linearGradient
+       id="linearGradient8"
+       x1="0"
+       y1="0"
+       x2="1"
+       y2="1">
+      <stop
+         stop-color="#55E2F6"
+         id="stop5"
+         offset="0"
+         style="stop-color:#37304c;stop-opacity:1;" />
+      <stop
+         offset="1"
+         stop-color="#087CFA"
+         id="stop6"
+         style="stop-color:#9a83cb;stop-opacity:1;" />
+    </linearGradient>
+    <linearGradient
+       id="k"
+       x1="0"
+       y1="0"
+       x2="1"
+       y2="1">
+      <stop
+         stop-color="#55E2F6"
+         id="stop1"
+         offset="0"
+         style="stop-color:#37304c;stop-opacity:1;" />
+      <stop
+         offset="1"
+         stop-color="#087CFA"
+         id="stop2"
+         style="stop-color:#9a83cb;stop-opacity:1;" />
+    </linearGradient>
+    <linearGradient
+       id="b"
+       x1="756.76167"
+       y1="192.30625"
+       x2="1175.9108"
+       y2="611.45539"
+       gradientTransform="matrix(0.78492348,0,0,1.2740095,-44.295165,0)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         stop-color="#53DBF6"
+         id="stop3"
+         offset="0"
+         style="stop-color:#40385b;stop-opacity:1;" />
+      <stop
+         offset="1"
+         stop-color="#2186F3"
+         id="stop4"
+         style="stop-color:#9a83cb;stop-opacity:1;" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient8"
+       id="linearGradient6"
+       x1="325.8091"
+       y1="190.24944"
+       x2="740.47523"
+       y2="604.91557"
+       gradientTransform="matrix(0.77652833,0,0,1.287783,-41.689567,0)"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#k"
+       id="linearGradient7"
+       x1="321.76759"
+       y1="108.12152"
+       x2="557.42837"
+       y2="343.78229"
+       gradientTransform="matrix(0.44131231,0,0,2.265969,30.398643,0)"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <rect
+     width="1024"
+     height="1024"
+     rx="100"
+     fill="#101c2e"
+     id="rect4"
+     inkscape:label="rect4"
+     style="fill:#202326;fill-opacity:1" />
+  <!-- K: straight stem and two unbroken diagonal arms -->
+  <path
+     d="m 172.39864,245 h 104 v 534 h -104 z"
+     fill="url(#k)"
+     id="path4"
+     style="fill:url(#linearGradient7)" />
+  <path
+     d="m 211.31043,515 198,-270 h 124 l -216,267 216,267 h -126 z"
+     fill="url(#k)"
+     id="path5"
+     style="fill:url(#linearGradient6)" />
+  <!-- B: independent left stem, two closed counters, genuinely rounded bowls -->
+  <path
+     fill="url(#b)"
+     fill-rule="evenodd"
+     d="m 549.70483,245 h 153 c 113,0 163,57 163,135 0,59 -32,95 -79,112 59,15 92,64 92,135 0,95 -59,152 -175,152 h -154 z m 95,84 v 125 h 54 c 52,0 70,-24 70,-63 0,-39 -23,-62 -72,-62 z m 0,216 v 150 h 55 c 53,0 80,-22 80,-74 0,-51 -24,-76 -83,-76 z"
+     id="path6"
+     style="fill:url(#b)" />
+</svg>
