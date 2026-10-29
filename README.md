@@ -1,46 +1,53 @@
 # KodexBar
 
-> AI provider usage in your KDE Plasma panel.
+> AI provider usage limits, right in your KDE Plasma panel.
 
 [![Plasma 6](https://img.shields.io/badge/KDE%20Plasma-6-1d99f3?style=flat-square)](https://kde.org/plasma-desktop/)
 [![CodexBar CLI](https://img.shields.io/badge/powered%20by-CodexBar%20CLI-0a0a0c?style=flat-square)](https://github.com/steipete/CodexBar)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6e5aff?style=flat-square)](LICENSE)
 
-KodexBar is a native KDE Plasma widget inspired by [CodexBar](https://github.com/steipete/CodexBar). It keeps Codex, Claude, OpenAI, Gemini, Copilot, OpenRouter, Bedrock, GroqCloud, and other CodexBar-supported provider limits visible from a Plasma panel popup.
-
-The widget intentionally uses the upstream `codexbar` CLI as its data source instead of reimplementing provider backends. CodexBar owns auth, provider config, API calls, local CLI probing, and `~/.codexbar/config.json`; KodexBar focuses on the Plasma panel and popup UI.
+KodexBar is a native Plasma 6 widget, inspired by [CodexBar](https://github.com/steipete/CodexBar), that shows rate limits, credits, and spend for Codex, Claude, OpenAI, Gemini, Copilot, OpenRouter, Bedrock, GroqCloud, and every other provider the CodexBar CLI supports.
 
 ![KodexBar widget screenshot](screenshot.png)
 
-## Why
+KodexBar does not talk to providers itself. It uses the upstream `codexbar` CLI as its only data source, so authentication, provider configuration, and API access stay in CodexBar (`~/.codexbar/config.json`). KodexBar handles the panel and popup UI.
 
-- **Panel visibility.** Show the active provider, used percent, and remaining credits directly in your KDE panel.
-- **CodexBar-compatible data.** Reads the same JSON payloads as the upstream app and Linux CLI.
-- **Local cost estimates.** Shows `codexbar cost` token and estimated-cost summaries when the upstream CLI can scan local logs.
-- **Provider fallback.** `Best available` tries Linux-friendly source combinations before surfacing an error.
-- **Plasma-native UI.** Built as a Plasma 6 applet with Kirigami styling, provider icons, compact panel text, and a scrollable popup.
+## Features
+
+- **At-a-glance panel label.** Shows the provider icon, used percentage, and remaining credits. You can show one provider or several side by side.
+- **Detailed popup.** Session, weekly, and extra rate-limit windows with usage bars and reset countdowns, plus credit balances, spend and budget rows, OpenAI dashboard summaries, and provider status.
+- **Local cost estimates.** Token and estimated-cost summaries from `codexbar cost`, where the CLI can scan local logs.
+- **Usage colouring.** The panel label turns the theme's warning colour at 80% used and its negative colour at 95% used.
+- **Works on Linux.** `Best available` mode tries the CLI defaults first, then works through Linux-friendly provider and source combinations.
+- **Handles CLI failures.** Refreshes never overlap, and a stuck refresh is aborted after five minutes. Failures back off the refresh interval, and the last good data stays on screen.
+- **Plasma-native.** Built with Kirigami, follows your theme, and is fully keyboard accessible.
 
 ## Requirements
 
-- KDE Plasma 6
-- `kpackagetool6`
-- Upstream `codexbar` CLI on `PATH`, or a full path configured in the widget settings
+- KDE Plasma 6 with `kpackagetool6`
+- The [CodexBar CLI](https://github.com/steipete/CodexBar), either on `PATH` or set by full path in the widget settings
+- Credentials for the providers you want to track (for example `codex login`, `claude /login`, or API keys that CodexBar supports)
 
-Install the upstream CLI with Homebrew on Linux:
+## Installation
+
+### 1. Install the CodexBar CLI
+
+With Homebrew on Linux:
 
 ```sh
 brew install steipete/tap/codexbar
+```
+
+Or download a Linux tarball from the [CodexBar releases](https://github.com/steipete/CodexBar/releases/latest).
+
+Check that it returns data:
+
+```sh
 codexbar --version
 codexbar usage --format json --pretty
 ```
 
-Or download a Linux CLI tarball from the [CodexBar releases](https://github.com/steipete/CodexBar/releases/latest).
-
-Make sure the provider CLIs or credentials you rely on are already configured. For example, sign in with `codex login`, `claude /login`, cloud/provider CLIs, or API keys supported by CodexBar.
-
-## Install
-
-Clone this repository and install the applet:
+### 2. Install the widget
 
 ```sh
 git clone https://github.com/tylxr59/KodexBar.git
@@ -48,106 +55,91 @@ cd KodexBar
 kpackagetool6 -t Plasma/Applet -i .
 ```
 
-Then add **KodexBar** to a Plasma panel.
+Right-click your panel, choose **Add Widgets…**, and add **KodexBar**.
 
-For development reloads:
+### Updating
 
 ```sh
+git pull
 kpackagetool6 -t Plasma/Applet -u .
 plasmashell --replace
 ```
 
+### Uninstalling
+
+```sh
+kpackagetool6 -t Plasma/Applet -r org.kde.plasma.kodexbar
+```
+
 ## Usage
 
-- Click the panel item to open the popup.
-- Middle-click the panel item, or use the refresh button in the popup, to query the CLI immediately.
-- Hover the panel item for a tooltip listing every provider's windows, used percentages, and reset countdowns.
-- The panel item is keyboard reachable: Tab to it and press Enter or Space to toggle the popup.
-- The panel label turns to the theme's warning colour at 80% used and to the negative colour at 95% used, based on the busiest window of the provider shown in the panel.
-- Open widget settings to change provider, source, refresh cadence, and compact label fields.
-- Leave Provider as `Best available` if you want KodexBar to find the first usable Linux-capable provider/source combination.
-- Choose `All enabled` to ask the CLI for all providers enabled in `~/.codexbar/config.json`.
-
-The popup renders common CodexBar CLI fields:
-
-- session, weekly, tertiary, and extra rate-limit windows
-- reset countdowns and usage bars
-- provider spend/budget rows
-- credit balances
-- OpenAI dashboard summaries where present
-- provider status when status fetching is enabled
-- per-provider CLI/runtime errors
-
-Refreshes are resilient to a slow or failing CLI: timed refreshes never overlap a running one, a refresh that takes longer than five minutes is aborted, and consecutive failures back off the refresh interval (x2, x4, x8, capped at 30 minutes). When a refresh fails, the last usable cards stay on screen with an error banner instead of being replaced.
-
-Provider-specific charts, account management, cookie/API-key editing, notifications, and cost scans remain available through the upstream CodexBar app and CLI.
-
-## Settings
-
-KodexBar exposes these Plasma widget settings:
-
-| Setting | Purpose |
+| Action | Result |
 | --- | --- |
-| Command | `codexbar` binary name or full path. |
-| Provider | `Best available`, `All enabled`, or a specific CodexBar provider ID. |
-| Source | `Best available`, `auto`, `web`, `cli`, `oauth`, or `api`. |
-| Refresh | Poll interval, from 10 to 3600 seconds. |
-| Panel shows | `First available provider`, or `Selected providers` to pick any number of providers to show side by side in the panel, each with its own icon and usage colour. |
-| Show provider name next to its icon | Include the provider name in the compact label. Untick to show only the provider icons and usage. |
-| Show used percent in panel | Include the 5-hour Codex usage in the compact label, falling back to weekly usage when the 5-hour window is unavailable. |
-| Show credits in panel | Include remaining credits in the compact label when available. |
-| Show email in widget | Show the account email inside the popup when available. |
-| Fetch provider status | Add `--status` to CLI calls and display incident/maintenance state. |
-| Show local cost summary | Show `codexbar cost` token and estimated-cost summaries in the popup. |
-| Colour panel text by usage | Colour the compact label when the busiest window crosses the warning and critical thresholds (default 80% and 95% used). |
+| Click | Open or close the popup |
+| Middle-click, or the popup's refresh button | Refresh now |
+| Hover | Tooltip with every provider's windows, usage, and reset times |
+| <kbd>Tab</kbd>, then <kbd>Enter</kbd> or <kbd>Space</kbd> | Open or close the popup from the keyboard |
 
-Provider credentials and provider toggles are still controlled by the CodexBar CLI config at `~/.codexbar/config.json`.
+Provider charts, account management, credential editing, and notifications are still handled by the upstream CodexBar app and CLI.
 
-## Linux provider fallback
+## Configuration
 
-Some CodexBar sources are macOS-specific, especially WebKit/browser integrations from the upstream app. KodexBar's `Best available` mode first lets the CLI use its configured defaults, then falls back through Linux-friendly combinations such as:
+Right-click the widget and choose **Configure KodexBar…**.
 
-- Codex via CLI, OAuth, or API
-- Claude via CLI, OAuth, or API
-- OpenAI, Gemini, Copilot, Kilo, Kimi, z.ai, MiniMax, Vertex AI, Warp, OpenRouter, ElevenLabs, Ollama, DeepSeek, Bedrock, GroqCloud, LLM Proxy, Deepgram, and other API/CLI-backed providers
+| Setting | Default | Description |
+| --- | --- | --- |
+| Command | `codexbar` | Binary name or absolute path to the CodexBar CLI. |
+| Provider | Best available | `Best available` uses the first working provider. `All enabled` queries every provider enabled in `~/.codexbar/config.json`. You can also pick a single provider. |
+| Source | Best available | `Best available`, `auto`, `web`, `cli`, `oauth`, or `api`. |
+| Refresh | 60 s | Poll interval, from 10 to 3600 seconds. |
+| Panel shows | First available provider | Or `Selected providers`, which shows any number of providers side by side, each with its own icon and colour. |
+| Show provider name next to its icon | On | Untick to show only the icon and usage. |
+| Show used percent in panel | On | Session-window usage. For Codex, falls back to weekly usage if there is no session window. |
+| Show credits in panel | On | Remaining credits, when the provider reports them. |
+| Show email in widget | Off | Show the account email in the popup. |
+| Fetch provider status | Off | Passes `--status` to the CLI and shows incident and maintenance state. |
+| Show local cost summary | On | Show `codexbar cost` token and cost estimates in the popup. |
+| Colour panel text by usage | On | Warning colour at 80% used, critical colour at 95%. |
 
-If you already know which provider works on your system, select it directly and leave Source as `Auto` or `Best available`.
+Provider credentials and which providers are enabled are set in the CodexBar config (`~/.codexbar/config.json`), not in the widget.
 
-## Test The CLI
+### Best available mode on Linux
 
-Run these before debugging the widget:
+Some CodexBar sources are macOS-only, in particular the upstream app's WebKit and browser integrations. In `Best available` mode, KodexBar first lets the CLI use its configured defaults. If that fails, it tries Linux-capable combinations in turn, such as Codex and Claude through CLI, OAuth, or API, and API- or CLI-backed providers like OpenAI, Gemini, Copilot, OpenRouter, Bedrock, GroqCloud, DeepSeek, and Ollama.
+
+If you know which provider works on your system, select it directly. This skips the search and makes refreshes faster.
+
+## How it works
+
+1. Plasma loads the applet from `metadata.json` and `contents/ui/main.qml`.
+2. On each refresh, the applet runs `codexbar usage --format json --json-only`.
+3. The JSON is turned into provider cards, usage rows, credits, status, and the panel label.
+4. A timer repeats this at the configured interval. After repeated failures it backs off (x2, x4, x8, up to 30 minutes).
+
+## Troubleshooting
+
+Before debugging the widget, check that the CLI works from a terminal:
 
 ```sh
 codexbar usage --format json --json-only --source auto | python3 -m json.tool
 codexbar usage --format json --json-only --provider codex --source oauth | python3 -m json.tool
 ```
 
-If the widget shows a CLI error, either install the CLI, configure provider credentials, or set the full command path in the widget settings.
-
-## How It Works
-
-1. Plasma runs the applet from `metadata.json` and `contents/ui/main.qml`.
-2. The applet shells out to `codexbar usage --format json --json-only`.
-3. The JSON payload is normalized into provider cards, usage rows, credit rows, status text, and compact panel text.
-4. A timer refreshes the data at the configured interval.
-5. Provider icons are loaded from `contents/icons/providers/`.
-
-## Troubleshooting
-
-| Symptom | Likely fix |
+| Symptom | Fix |
 | --- | --- |
-| Widget says `No data` | Run `codexbar usage --format json --pretty` in a terminal and verify the CLI returns usable data. |
-| Cost section is missing | Run `codexbar cost --format json --pretty` and verify the CLI reports local cost data for the selected provider. |
-| Widget says Codex is signed out | Run `codex login` in a terminal, then refresh the widget. |
-| Widget shows a CLI/runtime error | Install `codexbar`, set the full command path, or select a provider/source that works on Linux. |
-| Provider works in terminal but not in the widget | Use an absolute command path in settings if Plasma does not inherit your shell `PATH`. |
-| `Best available` picks the wrong provider | Select the provider explicitly in settings. |
-| Status never appears | Enable **Fetch provider status** in widget settings. |
+| `No data` | Run `codexbar usage --format json --pretty` and check that it returns usage. |
+| Works in a terminal but not in the widget | Plasma may not use your shell's `PATH`. Set an absolute path in **Command**. |
+| CLI or runtime error | Install `codexbar`, set its full path, or pick a provider and source that work on Linux. |
+| Codex shows as signed out | Run `codex login`, then refresh the widget. |
+| `Best available` picks the wrong provider | Select the provider explicitly. |
+| Cost section is missing | Run `codexbar cost --format json --pretty` and check that it reports local data. |
+| Status never appears | Enable **Fetch provider status**. |
 
-## Credits
+## Acknowledgements
 
-Refresh reliability, panel usage colouring, the detailed panel tooltip, middle-click refresh, and keyboard accessibility were adapted from [@Yoryoboy](https://github.com/Yoryoboy)'s fork, [Yoryoboy/KodexBar](https://github.com/Yoryoboy/KodexBar).
+- [CodexBar](https://github.com/steipete/CodexBar) by [@steipete](https://github.com/steipete), which supplies all the data and inspired this project.
+- [@Yoryoboy](https://github.com/Yoryoboy)'s fork, [Yoryoboy/KodexBar](https://github.com/Yoryoboy/KodexBar), which contributed refresh reliability, usage colouring, the detailed tooltip, middle-click refresh, and keyboard accessibility.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+[MIT](LICENSE)
