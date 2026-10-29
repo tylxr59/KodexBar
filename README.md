@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/kodexbar-128.png" alt="KodexBar logo" width="128" height="128"></p>
+
 # KodexBar
 
 > AI provider usage limits, right in your KDE Plasma panel.
@@ -5,6 +7,7 @@
 [![Plasma 6](https://img.shields.io/badge/KDE%20Plasma-6-1d99f3?style=flat-square)](https://kde.org/plasma-desktop/)
 [![CodexBar CLI](https://img.shields.io/badge/powered%20by-CodexBar%20CLI-0a0a0c?style=flat-square)](https://github.com/steipete/CodexBar)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6e5aff?style=flat-square)](LICENSE)
+[![KDE Store](https://img.shields.io/badge/KDE%20Store-KodexBar-1d99f3?style=flat-square)](https://www.opendesktop.org/p/2380630/)
 
 KodexBar is a native Plasma 6 widget, inspired by [CodexBar](https://github.com/steipete/CodexBar), that shows rate limits, credits, and spend for Codex, Claude, OpenAI, Gemini, Copilot, OpenRouter, Bedrock, GroqCloud, and every other provider the CodexBar CLI supports.
 
@@ -49,7 +52,9 @@ codexbar usage --format json --pretty
 
 ### 2. Install the widget
 
-Download the latest `.plasmoid` from the [releases page](https://github.com/tylxr59/KodexBar/releases/latest) and install it:
+Install from the [KDE Store](https://www.opendesktop.org/p/2380630/): right-click your panel, choose **Add Widgets…**, then **Get New Widgets…**, and search for **KodexBar**.
+
+Or download the latest `.plasmoid` from the [releases page](https://github.com/tylxr59/KodexBar/releases/latest) and install it:
 
 ```sh
 kpackagetool6 -t Plasma/Applet -i KodexBar-*.plasmoid
