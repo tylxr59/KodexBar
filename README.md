@@ -37,7 +37,7 @@ KodexBar does not talk to providers itself. It uses the upstream `codexbar` CLI 
 
 ## 🎯 Features
 
-|                                |                                                                                                                                                                                   |
+| Feature                        | What it does                                                                                                                                                                      |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 🏷️ **At-a-glance panel label** | Shows the provider icon, used percentage, and remaining credits. You can show one provider or several side by side.                                                               |
 | 🪟 **Detailed popup**          | Session, weekly, and extra rate-limit windows with usage bars and reset countdowns, plus credit balances, spend and budget rows, OpenAI dashboard summaries, and provider status. |
