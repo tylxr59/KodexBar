@@ -13,7 +13,7 @@
   <a href="https://www.opendesktop.org/p/2380630/"><img alt="KDE Store" src="https://img.shields.io/badge/KDE%20Store-KodexBar-1d99f3?logo=kde&logoColor=white"></a>
   <a href="https://kde.org/plasma-desktop/"><img alt="KDE Plasma 6" src="https://img.shields.io/badge/KDE%20Plasma-6-1d99f3"></a>
   <a href="https://github.com/steipete/CodexBar"><img alt="Powered by CodexBar CLI" src="https://img.shields.io/badge/powered%20by-CodexBar%20CLI-0a0a0c"></a>
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/tylxr59/KodexBar"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-97ca00"></a>
 </p>
 
 <p align="center">
@@ -24,8 +24,6 @@
 </p>
 
 ---
-
-## 📊 KodexBar
 
 KodexBar is a native Plasma 6 widget, inspired by [CodexBar](https://github.com/steipete/CodexBar), that shows rate limits, credits, and spend for Codex, Claude, OpenAI, Gemini, Copilot, OpenRouter, Bedrock, GroqCloud, and every other provider the CodexBar CLI supports.
 
