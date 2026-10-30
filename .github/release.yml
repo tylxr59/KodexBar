@@ -1,0 +1,21 @@
+# Groups merged pull requests in GitHub's generated release notes.
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+  categories:
+    - title: New features
+      labels:
+        - enhancement
+    - title: Fixes
+      labels:
+        - bug
+    - title: Documentation
+      labels:
+        - documentation
+    - title: Dependencies
+      labels:
+        - dependencies
+    - title: Other changes
+      labels:
+        - "*"
